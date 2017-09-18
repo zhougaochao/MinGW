@@ -53,11 +53,51 @@ void getch(void)
 // gets a symbol from input stream.
 void getsym(void)
 {
-	int i, k;
-	char a[MAXIDLEN + 1];
+	int i, k, comment;
+	char tmp_ch, a[MAXIDLEN + 1];
 
 	while (ch == ' '||ch == '\t')
 		getch();
+	
+	while(ch == '/') 
+	{
+		tmp_ch = ch;
+		getch();
+		if (ch == '*')
+		{
+			comment = 1;
+			do
+			{
+				do
+					getch();
+				while(ch != '*');					
+				getch();
+			}while(ch != '/'); 
+			comment = 0;
+			getch();
+			while (ch == ' '||ch == '\t')
+				getch();
+		}
+		else if(ch == '/')
+		{
+			comment = 1;
+			do
+				getch();
+			while(ch != ' '); 
+			comment = 0;
+			getch();
+			while (ch == ' '||ch == '\t')
+				getch();
+		}
+		else
+		{
+			cc--;
+			ch = tmp_ch;
+			while (ch == ' '||ch == '\t')
+				getch();
+			break;
+		}
+	}
 
 	if (isalpha(ch))
 	{ // symbol is a reserved word or an identifier.
