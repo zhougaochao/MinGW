@@ -44,7 +44,7 @@ void getch(void)
 			line[++ll] = ch;
 		} // while
 		printf("\n");
-		line[++ll] = ' ';
+		line[++ll] = '\n';
 	}
 	ch = line[++cc];
 } // getch
@@ -56,7 +56,7 @@ void getsym(void)
 	int i, k, comment;
 	char tmp_ch, a[MAXIDLEN + 1];
 
-	while (ch == ' '||ch == '\t')
+	while (ch == ' '||ch == '\t' || ch == '\n')
 		getch();
 	
 	while(ch == '/') 
@@ -75,7 +75,7 @@ void getsym(void)
 			}while(ch != '/'); 
 			comment = 0;
 			getch();
-			while (ch == ' '||ch == '\t')
+			while (ch == ' '||ch == '\t' || ch == '\n')
 				getch();
 		}
 		else if(ch == '/')
@@ -83,17 +83,17 @@ void getsym(void)
 			comment = 1;
 			do
 				getch();
-			while(ch != ' '); 
+			while(ch != '\n'); 
 			comment = 0;
 			getch();
-			while (ch == ' '||ch == '\t')
+			while (ch == ' '||ch == '\t' || ch == '\n')
 				getch();
 		}
 		else
 		{
 			cc--;
 			ch = tmp_ch;
-			while (ch == ' '||ch == '\t')
+			while (ch == ' '||ch == '\t' || ch == '\n')
 				getch();
 			break;
 		}
