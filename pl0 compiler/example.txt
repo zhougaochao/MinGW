@@ -1,5 +1,8 @@
 var i,j;
+/*this is comment*/
+//this is also comment
 begin
   i := -1;
-  j := i + 1;
+  j := i + 1/*this is fine*/;
+  //you can add comment here
 end.
