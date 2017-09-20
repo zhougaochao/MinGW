@@ -50,19 +50,37 @@ enum symtype
 
 enum idtype
 {
-	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE
+	ID_CONSTANT,
+	ID_VARIABLE,
+	ID_PROCEDURE
 };
 
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC
+	LIT,
+	OPR,
+	LOD,
+	STO,
+	CAL,
+	INT,
+	JMP,
+	JPC
 };
 
 enum oprcode
 {
-	OPR_RET, OPR_NEG, OPR_ADD, OPR_MIN,
-	OPR_MUL, OPR_DIV, OPR_ODD, OPR_EQU,
-	OPR_NEQ, OPR_LES, OPR_LEQ, OPR_GTR,
+	OPR_RET,
+	OPR_NEG,
+	OPR_ADD,
+	OPR_MIN,
+	OPR_MUL,
+	OPR_DIV,
+	OPR_ODD,
+	OPR_EQU,
+	OPR_NEQ,
+	OPR_LES,
+	OPR_LEQ,
+	OPR_GTR,
 	OPR_GEQ
 };
 
@@ -132,31 +150,76 @@ instruction code[CXMAX];
 char* word[NRW + 1] =
 {
 	"", /* place holder */
-	"begin", "call", "const", "do", "end","if",
-	"odd", "procedure", "then", "var", "while"
+	"begin",
+	"call",
+	"const",
+	"do",
+	"end",
+	"if",
+	"odd",
+	"procedure",
+	"then",
+	"var",
+	"while"
 };
 
 int wsym[NRW + 1] =
 {
-	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
-	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE
-};
-
-int ssym[NSYM + 1] =
-{
-	SYM_NULL, SYM_PLUS, SYM_MINUS, SYM_TIMES, SYM_SLASH,
-	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON
+	SYM_NULL,
+	SYM_BEGIN,
+	SYM_CALL,
+	SYM_CONST,
+	SYM_DO,
+	SYM_END,
+	SYM_IF,
+	SYM_ODD,
+	SYM_PROCEDURE,
+	SYM_THEN,
+	SYM_VAR,
+	SYM_WHILE
 };
 
 char csym[NSYM + 1] =
 {
-	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';'
+	' ',
+	'+',
+	'-',
+	'*',
+	'/',
+	'(',
+	')',
+	'=',
+	',',
+	'.',
+	';'
+};
+
+int ssym[NSYM + 1] =
+{
+	SYM_NULL,
+	SYM_PLUS,
+	SYM_MINUS,
+	SYM_TIMES,
+	SYM_SLASH,
+	SYM_LPAREN,
+	SYM_RPAREN,
+	SYM_EQU,
+	SYM_COMMA,
+	SYM_PERIOD,
+	SYM_SEMICOLON
 };
 
 #define MAXINS   8
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC"
+	"LIT",
+	"OPR",
+	"LOD",
+	"STO",
+	"CAL",
+	"INT",
+	"JMP",
+	"JPC"
 };
 
 typedef struct
