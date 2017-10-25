@@ -1,16 +1,16 @@
 #include <stdio.h>
 
-#define NRW        11     // number of reserved words
+#define NRW        22     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
-#define NSYM       10     // maximum number of symbols in array ssym and csym
+#define NSYM       30     // maximum number of symbols in array ssym and csym
 #define MAXIDLEN   10     // length of identifiers
 
 #define MAXADDRESS 32767  // maximum address
 #define MAXLEVEL   32     // maximum depth of nesting block
 #define CXMAX      500    // size of code array
 
-#define MAXSYM     30     // maximum number of symbols  
+#define MAXSYM     50     // maximum number of symbols  
 
 #define STACKSIZE  1000   // maximum storage
 
@@ -45,7 +45,40 @@ enum symtype
 	SYM_CALL,
 	SYM_CONST,
 	SYM_VAR,
-	SYM_PROCEDURE
+	SYM_PROCEDURE,
+	
+	//new reserved words 
+	SYM_ELSE,
+	SYM_ELIF,
+	SYM_EXIT,
+	SYM_RETUEN,
+	SYM_FOR,
+	SYM_RANDOM,
+	SYM_PRINT,
+	SYM_GOTO,
+	SYM_BREAK,
+	SYM_CONTINUE,
+	SYM_SWITCH,
+	
+	//new character symbols
+	SYM_AND,	//OK 
+	SYM_OR,		//OK 
+	SYM_XOR,	//OK 
+	SYM_NOT,	//OK 
+
+	SYM_BAND,	//OK 
+	SYM_BOR,	//OK 
+	SYM_BXOR,	//OK 
+	SYM_BNOT,	//OK 
+
+	SYM_MOD,	//OK 
+	SYM_LSQRBRA,
+	SYM_RSQRBRA,
+	
+	SYM_QUESTION,
+	SYM_COLON,
+	SYM_LSHIFT,	//OK 
+	SYM_RSHIFT 	//OK 
 };
 
 enum idtype
@@ -64,7 +97,7 @@ enum opcode
 	CAL,
 	INT,
 	JMP,
-	JPC
+	JPC,
 };
 
 enum oprcode
@@ -81,7 +114,21 @@ enum oprcode
 	OPR_LES,
 	OPR_LEQ,
 	OPR_GTR,
-	OPR_GEQ
+	OPR_GEQ,
+	
+	OPR_NOT,
+	OPR_AND,
+	OPR_XOR,
+	OPR_OR,
+	
+	OPR_BNOT,
+	OPR_BAND,
+	OPR_BXOR,
+	OPR_BOR,
+	
+	OPR_MOD,
+	OPR_LSHIFT,
+	OPR_RSHIFT
 };
 
 
@@ -160,7 +207,19 @@ char* word[NRW + 1] =
 	"procedure",
 	"then",
 	"var",
-	"while"
+	"while",
+	
+	"else",				//else
+	"elif",				//elif
+	"exit",				//exit
+	"return",			//return
+	"for",				//for
+	"random",			//random
+	"print", 			//print
+	"goto",				//goto
+	"break",			//break
+	"continue",			//continue
+	"switch"			//switch
 };
 
 int wsym[NRW + 1] =
@@ -176,7 +235,19 @@ int wsym[NRW + 1] =
 	SYM_PROCEDURE,
 	SYM_THEN,
 	SYM_VAR,
-	SYM_WHILE
+	SYM_WHILE,
+	
+	SYM_ELSE,
+	SYM_ELIF,
+	SYM_EXIT,
+	SYM_RETUEN,
+	SYM_FOR,
+	SYM_RANDOM,
+	SYM_PRINT,
+	SYM_GOTO,
+	SYM_BREAK,
+	SYM_CONTINUE,
+	SYM_SWITCH
 };
 
 char csym[NSYM + 1] =
@@ -191,7 +262,15 @@ char csym[NSYM + 1] =
 	'=',
 	',',
 	'.',
-	';'
+	';',
+	
+	'!',			//not
+	'~',			//bit not
+	'[',			//lsqrbra
+	']',			//rsqrbra
+	'?',			//question
+	'%'				//modulo
+
 };
 
 int ssym[NSYM + 1] =
@@ -206,7 +285,15 @@ int ssym[NSYM + 1] =
 	SYM_EQU,
 	SYM_COMMA,
 	SYM_PERIOD,
-	SYM_SEMICOLON
+	SYM_SEMICOLON,
+	
+	SYM_NOT,
+	SYM_BNOT,
+	SYM_LSQRBRA,
+	SYM_RSQRBRA,
+	SYM_QUESTION,
+	SYM_MOD
+
 };
 
 #define MAXINS   8

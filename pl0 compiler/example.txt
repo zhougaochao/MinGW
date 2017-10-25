@@ -1,7 +1,14 @@
-var i,j;
-/*this is comment*/
-//this is also comment
+var i, j;
 begin
-  i := -1;  //you can even add comment here
-  j := i + 1/*this is fine*/;
+  i := -1 + 9;
+  j := i +- 1;
+  i := 10 >= 10;
+  i := 0 & 10;
+  i := -1 & 10;
+  i := -1 | 10;
+  i := 10 ^ 10;
+  i := 10 << 2;
+  j := i >> 2;
+  i := ~-1;
+  i := 1 ^^ 0;
 end.
