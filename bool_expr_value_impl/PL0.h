@@ -1,16 +1,16 @@
 #include <stdio.h>
 
-#define NRW        22     // number of reserved words
+#define NRW        11     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
-#define NSYM       30     // maximum number of symbols in array ssym and csym
+#define NSYM       11     // maximum number of symbols in array ssym and csym
 #define MAXIDLEN   10     // length of identifiers
 
 #define MAXADDRESS 32767  // maximum address
 #define MAXLEVEL   32     // maximum depth of nesting block
 #define CXMAX      500    // size of code array
 
-#define MAXSYM     50     // maximum number of symbols  
+#define MAXSYM     30     // maximum number of symbols  
 
 #define STACKSIZE  1000   // maximum storage
 
@@ -46,90 +46,29 @@ enum symtype
 	SYM_CONST,
 	SYM_VAR,
 	SYM_PROCEDURE,
-	
-	//new reserved words 
-	SYM_ELSE,
-	SYM_ELIF,
-	SYM_EXIT,
-	SYM_RETUEN,
-	SYM_FOR,
-	SYM_RANDOM,
-	SYM_PRINT,
-	SYM_GOTO,
-	SYM_BREAK,
-	SYM_CONTINUE,
-	SYM_SWITCH,
-	
-	//new character symbols
-	SYM_AND,	//OK 
-	SYM_OR,		//OK 
-	SYM_XOR,	//OK 
-	SYM_NOT,	//OK 
-
-	SYM_BAND,	//OK 
-	SYM_BOR,	//OK 
-	SYM_BXOR,	//OK 
-	SYM_BNOT,	//OK 
-
-	SYM_MOD,	//OK 
-	SYM_LSQRBRA,
-	SYM_RSQRBRA,
-	
-	SYM_QUESTION,
-	SYM_COLON,
-	SYM_LSHIFT,	//OK 
-	SYM_RSHIFT 	//OK 
+	SYM_NOT,//2017-09-24
+	SYM_AND,
+	SYM_OR
 };
 
 enum idtype
 {
-	ID_CONSTANT,
-	ID_VARIABLE,
-	ID_PROCEDURE
+	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE
 };
 
 enum opcode
 {
-	LIT,
-	OPR,
-	LOD,
-	STO,
-	CAL,
-	INT,
-	JMP,
-	JPC,
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC
 };
 
 enum oprcode
 {
-	OPR_RET,
-	OPR_NEG,
-	OPR_ADD,
-	OPR_MIN,
-	OPR_MUL,
-	OPR_DIV,
-	OPR_ODD,
-	OPR_EQU,
-	OPR_NEQ,
-	OPR_LES,
-	OPR_LEQ,
-	OPR_GTR,
-	OPR_GEQ,
-
-	OPR_NOT,
-	OPR_AND,
-	OPR_XOR,
-	OPR_OR,
-
-	OPR_BNOT,
-	OPR_BAND,
-	OPR_BXOR,
-	OPR_BOR,
-
-	OPR_MOD,
-	OPR_LSHIFT,
-	OPR_RSHIFT
+	OPR_RET, OPR_NEG, OPR_ADD, OPR_MIN,
+	OPR_MUL, OPR_DIV, OPR_ODD, OPR_EQU,
+	OPR_NEQ, OPR_LES, OPR_LEQ, OPR_GTR,
+	OPR_GEQ, OPR_NOT, OPR_AND, OPR_OR //2017-09-24
 };
+
 
 typedef struct
 {
@@ -139,7 +78,7 @@ typedef struct
 } instruction;
 
 //////////////////////////////////////////////////////////////////////
-char *err_msg[] =
+char* err_msg[] =
 {
 /*  0 */    "",
 /*  1 */    "Found ':=' when expecting '='.",
@@ -193,119 +132,34 @@ char line[80];
 
 instruction code[CXMAX];
 
-char *word[NRW + 1] =
+char* word[NRW + 1] =
 {
 	"", /* place holder */
-	"begin",
-	"call",
-	"const",
-	"do",
-	"end",
-	"if",
-	"odd",
-	"procedure",
-	"then",
-	"var",
-	"while",
-	
-	"else",				//else
-	"elif",				//elif
-	"exit",				//exit
-	"return",			//return
-	"for",				//for
-	"random",			//random
-	"print", 			//print
-	"goto",				//goto
-	"break",			//break
-	"continue",			//continue
-	"switch"			//switch
+	"begin", "call", "const", "do", "end","if",
+	"odd", "procedure", "then", "var", "while"
 };
 
 int wsym[NRW + 1] =
 {
-	SYM_NULL,
-	SYM_BEGIN,
-	SYM_CALL,
-	SYM_CONST,
-	SYM_DO,
-	SYM_END,
-	SYM_IF,
-	SYM_ODD,
-	SYM_PROCEDURE,
-	SYM_THEN,
-	SYM_VAR,
-	SYM_WHILE,
-	
-	SYM_ELSE,
-	SYM_ELIF,
-	SYM_EXIT,
-	SYM_RETUEN,
-	SYM_FOR,
-	SYM_RANDOM,
-	SYM_PRINT,
-	SYM_GOTO,
-	SYM_BREAK,
-	SYM_CONTINUE,
-	SYM_SWITCH
-};
-
-char csym[NSYM + 1] =
-{
-	' ',
-	'+',
-	'-',
-	'*',
-	'/',
-	'(',
-	')',
-	'=',
-	',',
-	'.',
-	';',
-	
-	'!',			//not
-	'~',			//bit not
-	'[',			//lsqrbra
-	']',			//rsqrbra
-	'?',			//question
-	'%'				//modulo
-
+	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
+	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE
 };
 
 int ssym[NSYM + 1] =
 {
-	SYM_NULL,
-	SYM_PLUS,
-	SYM_MINUS,
-	SYM_TIMES,
-	SYM_SLASH,
-	SYM_LPAREN,
-	SYM_RPAREN,
-	SYM_EQU,
-	SYM_COMMA,
-	SYM_PERIOD,
-	SYM_SEMICOLON,
-	
-	SYM_NOT,
-	SYM_BNOT,
-	SYM_LSQRBRA,
-	SYM_RSQRBRA,
-	SYM_QUESTION,
-	SYM_MOD
+	SYM_NULL, SYM_PLUS, SYM_MINUS, SYM_TIMES, SYM_SLASH,
+	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_NOT
+};
 
+char csym[NSYM + 1] =
+{
+	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';', '!' //2017-09-24
 };
 
 #define MAXINS   8
-char *mnemonic[MAXINS] =
+char* mnemonic[MAXINS] =
 {
-	"LIT",
-	"OPR",
-	"LOD",
-	"STO",
-	"CAL",
-	"INT",
-	"JMP",
-	"JPC"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC"
 };
 
 typedef struct
