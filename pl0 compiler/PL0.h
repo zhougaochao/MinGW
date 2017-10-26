@@ -78,7 +78,22 @@ enum symtype
 	SYM_QUESTION,
 	SYM_COLON,
 	SYM_LSHIFT,	//OK 
-	SYM_RSHIFT 	//OK 
+	SYM_RSHIFT, //OK 
+	SYM_LSHBEC, //OK 
+	SYM_RSHBEC, //OK 
+	SYM_BANDBEC,//OK 
+	SYM_BXORBEC,//OK 
+	SYM_BORBEC, //OK 
+	SYM_ADDBEC, //OK 
+	SYM_SUBBEC, //OK 
+	SYM_MULBEC, //OK 
+	SYM_DIVBEC, //OK 
+	SYM_MODBEC, //OK 
+	
+	SYM_INC,
+	SYM_DEC
+	
+	
 };
 
 enum idtype
@@ -98,6 +113,8 @@ enum opcode
 	INT,
 	JMP,
 	JPC,
+	POP,
+	XCHG,
 };
 
 enum oprcode
@@ -164,7 +181,7 @@ char *err_msg[] =
 /* 20 */    "Relative operators expected.",
 /* 21 */    "Procedure identifier can not be in an expression.",
 /* 22 */    "Missing ')'.",
-/* 23 */    "The symbol can not be followed by a factor.",
+/* 23 */    "The symbol can not be a primary expression.",
 /* 24 */    "The symbol can not be as the beginning of an expression.",
 /* 25 */    "The number is too great.",
 /* 26 */    "",
@@ -252,10 +269,6 @@ int wsym[NRW + 1] =
 char csym[NSYM + 1] =
 {
 	' ',
-	'+',
-	'-',
-	'*',
-	'/',
 	'(',
 	')',
 	'=',
@@ -268,17 +281,11 @@ char csym[NSYM + 1] =
 	'[',			//lsqrbra
 	']',			//rsqrbra
 	'?',			//question
-	'%'				//modulo
-
 };
 
 int ssym[NSYM + 1] =
 {
 	SYM_NULL,
-	SYM_PLUS,
-	SYM_MINUS,
-	SYM_TIMES,
-	SYM_SLASH,
 	SYM_LPAREN,
 	SYM_RPAREN,
 	SYM_EQU,
@@ -291,11 +298,9 @@ int ssym[NSYM + 1] =
 	SYM_LSQRBRA,
 	SYM_RSQRBRA,
 	SYM_QUESTION,
-	SYM_MOD
-
 };
 
-#define MAXINS   8
+#define MAXINS   15
 char *mnemonic[MAXINS] =
 {
 	"LIT",
@@ -305,7 +310,9 @@ char *mnemonic[MAXINS] =
 	"CAL",
 	"INT",
 	"JMP",
-	"JPC"
+	"JPC",
+	"POP",
+	"XCHG"
 };
 
 typedef struct

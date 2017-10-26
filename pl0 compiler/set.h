@@ -7,7 +7,7 @@ typedef struct snode
 	struct snode *next;
 } snode, *symset;
 
-symset phi, declbegsys, statbegsys, facbegsys, relset;
+symset phi, declbegsys, statbegsys, facbegsys; 
 
 symset createset(int elem, .../* SYM_NULL */);
 void destroyset(symset s);

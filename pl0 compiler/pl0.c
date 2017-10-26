@@ -53,10 +53,8 @@ void getsym(void)
 {
 	int i, k, comment;
 	char tmp_ch, a[MAXIDLEN + 1];
-
 	while (ch == ' ' || ch == '\t' || ch == '\n')
 		getch();
-	
 	while(ch == '/') 
 	{ //ignore comments as if they are space, tab or enter marks
 		tmp_ch = ch;
@@ -94,7 +92,6 @@ void getsym(void)
 			break;
 		}
 	}
-
 	if (isalpha(ch))
 	{ // symbol is a reserved word or an identifier.
 		k = 0;
@@ -150,8 +147,14 @@ void getsym(void)
 		}
 		else if (ch == '>')
 		{
-			sym = SYM_RSHIFT;  // >>
 			getch();
+			if (ch == '=')
+			{
+				sym = SYM_RSHBEC;  // >>=
+				getch();
+			}
+			else
+				sym = SYM_RSHIFT;  // >>
 		}
 		else
 			sym = SYM_GTR;     // >
@@ -171,8 +174,15 @@ void getsym(void)
 		}
 		else if (ch == '<')
 		{
-			sym = SYM_LSHIFT;  // <<
 			getch();
+			if (ch == '=')
+			{
+				sym = SYM_LSHBEC;  // <<=
+				getch(); 
+			}
+			else
+				sym = SYM_LSHIFT;  // <<
+				
 		}
 		else
 			sym = SYM_LES;     // <
@@ -185,8 +195,13 @@ void getsym(void)
 			sym = SYM_AND;     // &&
 			getch();
 		}
+		else if (ch == '=')
+		{
+			sym = SYM_BANDBEC; // &=
+			getch();
+		}
 		else
-			sym = SYM_BAND;     // &
+			sym = SYM_BAND;    // &
 	}
 	else if (ch == '^')
 	{
@@ -194,6 +209,11 @@ void getsym(void)
 		if (ch == '^')
 		{
 			sym = SYM_XOR;     // ^^
+			getch();
+		}
+		else if (ch == '=')
+		{
+			sym = SYM_BXORBEC; // ^=
 			getch();
 		}
 		else
@@ -204,11 +224,81 @@ void getsym(void)
 		getch();
 		if (ch == '|')
 		{
-			sym = SYM_OR;     // ||
+			sym = SYM_OR;      // ||
+			getch();
+		}
+		else if (ch == '=')
+		{
+			sym = SYM_BORBEC;  // |=
 			getch();
 		}
 		else
-			sym = SYM_BOR;    // |
+			sym = SYM_BOR;     // |
+	}
+	else if (ch == '+')
+	{
+		getch();
+		if (ch == '+')
+		{
+			sym = SYM_INC;      // ++
+			getch();
+		}
+		else if (ch == '=')
+		{
+			sym = SYM_ADDBEC;  // +=
+			getch();
+		}
+		else
+			sym = SYM_PLUS;     // +
+	}
+	else if (ch == '-')
+	{
+		getch();
+		if (ch == '-')
+		{
+			sym = SYM_DEC;      // --
+			getch();
+		}
+		else if (ch == '=')
+		{
+			sym = SYM_SUBBEC;  // -=
+			getch();
+		}
+		else
+			sym = SYM_MINUS;     // -
+	}
+	else if (ch == '*')
+	{
+		getch();
+		if (ch == '=')
+		{
+			sym = SYM_MULBEC;    // *=
+			getch();
+		}
+		else
+			sym = SYM_TIMES;     // *
+	}
+	else if (ch == '/')
+	{
+		getch();
+		if (ch == '=')
+		{
+			sym = SYM_DIVBEC;    // /=
+			getch();
+		}
+		else
+			sym = SYM_SLASH;     // /
+	}
+	else if (ch == '%')
+	{
+		getch();
+		if (ch == '=')
+		{
+			sym = SYM_MODBEC;    // %=
+			getch();
+		}
+		else
+			sym = SYM_MOD;       // %
 	}
 	else
 	{ // other tokens in csym
@@ -342,7 +432,6 @@ void vardeclaration(void)
 void listcode(int from, int to)
 {
 	int i;
-	
 	printf("\n");
 	for (i = from; i < to; i++)
 		printf("%5d %s\t%d\t%d\n", i, mnemonic[code[i].f], code[i].l, code[i].a);
@@ -350,15 +439,14 @@ void listcode(int from, int to)
 } // listcode
 
 //////////////////////////////////////////////////////////////////////
-void factor(symset fsys)
+void primary_expr(symset fsys)
 {
 	void expression(symset fsys);
-	void bit_or_expr(symset fsys);
-	void or_expr(symset fsys);
 	int i;
-	symset set;
-	test(facbegsys, fsys, 24); // The symbol can not be as the beginning of an expression.
-	while (inset(sym, facbegsys))
+	symset set, set1;
+	set1 = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, SYM_NULL);
+	set = uniteset(fsys, set1);
+	if (inset(sym, set1))
 	{
 		if (sym == SYM_IDENTIFIER)
 		{
@@ -397,53 +485,74 @@ void factor(symset fsys)
 		{
 			getsym();
 			set = uniteset(createset(SYM_RPAREN, SYM_NULL), fsys);
-			or_expr(set);//expression(set);
+			expression(set);
 			destroyset(set);
 			if (sym == SYM_RPAREN)
 				getsym();
 			else
 				error(22); // Missing ')'.
 		}
-		else if (sym == SYM_MINUS) // UMINUS,  Expr -> '-' Expr
-		{
-			getsym();
-			factor(fsys);
-			gen(OPR, 0, OPR_NEG);
-		}
-		else if (sym == SYM_NOT) // UNOT,  Expr -> '!' Expr
-		{
-			getsym();
-			or_expr(fsys);
-			gen(OPR, 0, OPR_NOT);
-		}
-		else if (sym == SYM_BNOT) // UBNOT,  Expr -> '~' Expr
-		{
-			getsym();
-			bit_or_expr(fsys);
-			gen(OPR, 0, OPR_BNOT);
-		}
-		else if (sym == SYM_ODD) //2017-09-24
-		{
-			getsym();
-			bit_or_expr(fsys);
-			gen(OPR, 0, 6);
-		}
-		test(fsys, createset(SYM_LPAREN, SYM_NULL), 23);
-	} // while
-} // factor
+	}
+	else
+		error(23);
+	destroyset(set);
+	destroyset(set1); 
+} // primary_expr
 
 //////////////////////////////////////////////////////////////////////
-void term(symset fsys)
+void postfix_expr(symset fsys)
+{
+	primary_expr(fsys);
+} // postfix_expr
+
+//////////////////////////////////////////////////////////////////////
+void unary_expr(symset fsys)
+{
+	int i, unaryop;
+	symset set, set1;
+	set1 = createset(SYM_PLUS, SYM_MINUS, SYM_NOT, SYM_BNOT, SYM_ODD, SYM_NULL);
+	set = uniteset(fsys, set1);
+	if (inset(sym, set1))
+	{
+		unaryop = sym;
+		getsym();
+		unary_expr(set);
+		switch (unaryop)
+		{
+			case SYM_PLUS:
+				break;
+			case SYM_MINUS:
+				gen(OPR, 0, OPR_NEG);
+				break;
+			case SYM_NOT:
+				gen(OPR, 0, OPR_NOT);
+				break;
+			case SYM_BNOT:
+				gen(OPR, 0, OPR_BNOT);
+				break;
+			case SYM_ODD:
+				gen(OPR, 0, SYM_ODD);
+				break;
+		}
+	}
+	else
+		postfix_expr(set);
+	destroyset(set);
+	destroyset(set1); 
+} // unary_expr
+
+//////////////////////////////////////////////////////////////////////
+void multi_expr(symset fsys)
 {
 	int mulop;
 	symset set;
 	set = uniteset(fsys, createset(SYM_TIMES, SYM_SLASH, SYM_MOD, SYM_NULL));
-	factor(set);
+	unary_expr(set);
 	while (sym == SYM_TIMES || sym == SYM_SLASH || sym == SYM_MOD)
 	{
 		mulop = sym;
 		getsym();
-		factor(set);
+		unary_expr(set);
 		if (mulop == SYM_TIMES)
 			gen(OPR, 0, OPR_MUL);
 		else if (mulop == SYM_SLASH)
@@ -452,27 +561,33 @@ void term(symset fsys)
 			gen(OPR, 0, OPR_MOD); 
 	} // while
 	destroyset(set);
-} // term
+} // multi_expr
 
 //////////////////////////////////////////////////////////////////////
-void expression(symset fsys)
+void addi_expr(symset fsys)
 {
 	int addop;
 	symset set;
 	set = uniteset(fsys, createset(SYM_PLUS, SYM_MINUS, SYM_NULL));
-	term(set);
+	multi_expr(set);
 	while (sym == SYM_PLUS || sym == SYM_MINUS)
 	{
 		addop = sym;
 		getsym();
-		term(set);
+		multi_expr(set);
 		if (addop == SYM_PLUS)
 			gen(OPR, 0, OPR_ADD);
 		else
 			gen(OPR, 0, OPR_MIN);
 	} // while
 	destroyset(set);
-} // expression
+} // addi_expr
+
+//////////////////////////////////////////////////////////////////////
+void algebra_expr(symset fsys)
+{
+	addi_expr(fsys);
+} //dummy func algebra_expr
 
 //////////////////////////////////////////////////////////////////////
 void shift_expr(symset fsys)
@@ -480,12 +595,12 @@ void shift_expr(symset fsys)
 	int shiftop;
 	symset set;
 	set = uniteset(fsys, createset(SYM_LSHIFT, SYM_RSHIFT, SYM_NULL));
-	expression(set);
+	algebra_expr(set);
 	while (sym == SYM_LSHIFT || sym == SYM_RSHIFT)
 	{
 		shiftop = sym;
 		getsym();
-		expression(set);
+		algebra_expr(set);
 		if (shiftop == SYM_LSHIFT)
 			gen(OPR, 0, OPR_LSHIFT);
 		else
@@ -495,18 +610,49 @@ void shift_expr(symset fsys)
 } // shift_expr
 
 //////////////////////////////////////////////////////////////////////
-void rel_expr(symset fsys)
+void comp_expr(symset fsys)
 {
-	int relop;
+	int compop;
 	symset set;
-	set = uniteset(relset, fsys);
+	set = uniteset(fsys, createset(SYM_LES, SYM_LEQ, SYM_GTR, SYM_GEQ, SYM_NULL));
 	shift_expr(set);
-	if (inset(sym, relset))
+	if (sym == SYM_LES || sym == SYM_LEQ || sym == SYM_GTR || sym == SYM_GEQ)
 	{
-		relop = sym;
+		compop = sym;
 		getsym();
 		shift_expr(fsys);
-		switch (relop)
+		switch (compop)
+		{
+			case SYM_LES:
+				gen(OPR, 0, OPR_LES);
+				break;
+			case SYM_LEQ:
+				gen(OPR, 0, OPR_LEQ);
+				break;
+			case SYM_GTR:
+				gen(OPR, 0, OPR_GTR);
+				break;
+			case SYM_GEQ:
+				gen(OPR, 0, OPR_GEQ);
+				break;
+		} // switch
+	} // if
+	destroyset(set);
+} // comp_expr
+
+///////////////////////////////////////////////
+void equ_expr(symset fsys)
+{
+	int equop;
+	symset set;
+	set = uniteset(fsys, createset(SYM_EQU, SYM_NEQ, SYM_NULL));
+	comp_expr(set);
+	if (sym == SYM_EQU || sym == SYM_NEQ)
+	{
+		equop = sym;
+		getsym();
+		comp_expr(fsys);
+		switch (equop)
 		{
 			case SYM_EQU:
 				gen(OPR, 0, OPR_EQU);
@@ -514,22 +660,16 @@ void rel_expr(symset fsys)
 			case SYM_NEQ:
 				gen(OPR, 0, OPR_NEQ);
 				break;
-			case SYM_LES:
-				gen(OPR, 0, OPR_LES);
-				break;
-			case SYM_GEQ:
-				gen(OPR, 0, OPR_GEQ);
-				break;
-			case SYM_GTR:
-				gen(OPR, 0, OPR_GTR);
-				break;
-			case SYM_LEQ:
-				gen(OPR, 0, OPR_LEQ);
-				break;
 		} // switch
 	} // if
 	destroyset(set);
-} // rel_expr
+} // equ_expr
+
+//////////////////////////////////////////////////////////////////////
+void rel_expr(symset fsys)
+{
+	equ_expr(fsys);
+} // dummy func rel_expr
 
 //////////////////////////////////////////////////////////////////////
 void bit_and_expr(symset fsys)
@@ -544,7 +684,7 @@ void bit_and_expr(symset fsys)
 		gen(OPR, 0, OPR_BAND);
 	} // while
 	destroyset(set);
-} //bit_and_expr
+} // bit_and_expr
 
 //////////////////////////////////////////////////////////////////////
 void bit_xor_expr(symset fsys)
@@ -559,7 +699,7 @@ void bit_xor_expr(symset fsys)
 		gen(OPR, 0, OPR_BXOR);
 	} // while
 	destroyset(set);
-} //bit_xor_expr
+} // bit_xor_expr
 
 //////////////////////////////////////////////////////////////////////
 void bit_or_expr(symset fsys)
@@ -574,22 +714,28 @@ void bit_or_expr(symset fsys)
 		gen(OPR, 0, OPR_BOR);
 	} // while
 	destroyset(set);
-} //bit_or_expr
+} // bit_or_expr
+
+//////////////////////////////////////////////////////////////////////
+void bit_expr(symset fsys)
+{
+	bit_or_expr(fsys);
+} // dummy func bit_expr
 
 //////////////////////////////////////////////////////////////////////
 void and_expr(symset fsys)
 {
 	symset set;
 	set = uniteset(fsys, createset(SYM_AND, SYM_NULL));
-	bit_or_expr(set);
+	bit_expr(set);
 	while (sym == SYM_AND)
 	{
 		getsym();
-		bit_or_expr(set);
+		bit_expr(set);
 		gen(OPR, 0, OPR_AND);
 	} // while
 	destroyset(set);
-}
+} // and_expr
 
 //////////////////////////////////////////////////////////////////////
 void xor_expr(symset fsys)
@@ -604,7 +750,7 @@ void xor_expr(symset fsys)
 		gen(OPR, 0, OPR_XOR);
 	} // while
 	destroyset(set);
-} // or_expr
+} // xor_expr
 
 //////////////////////////////////////////////////////////////////////
 void or_expr(symset fsys)
@@ -622,12 +768,41 @@ void or_expr(symset fsys)
 } // or_expr
 
 //////////////////////////////////////////////////////////////////////
-/*void assign_expr(symset fsys)
+void bool_expr(symset fsys)
 {
-	int i;	
+	or_expr(fsys);
+} // dummy func bool_expr
+
+//////////////////////////////////////////////////////////////////////
+void condition_expr(symset fsys)
+{
+	bool_expr(fsys);
+	/*symset set;
+	set = uniteset(fsys, createset(SYM_QUESTION, SYM_COLON, SYM_NULL));
+	bool_expr(set);
+	if (sym == SYM_QUESTION)
+	{
+		getsym();
+		bool_expr(set);
+		gen(OPR, 0, OPR_OR);
+	} // while
+	destroyset(set);*/
+} //condition_expr
+
+//////////////////////////////////////////////////////////////////////
+void assign_expr(symset fsys)
+{
+	int assignop;
+	int tmp_cc, i;
+	enum symtype tmp_sym;
+	symset set, set1;
+	set1 = createset(SYM_BECOMES, SYM_LSHBEC, SYM_RSHBEC, SYM_BANDBEC, SYM_BXORBEC, SYM_BORBEC,
+					 SYM_ADDBEC,  SYM_SUBBEC, SYM_MULBEC, SYM_DIVBEC,  SYM_MODBEC,  SYM_NULL);
+	set = uniteset(fsys, set1);
+	tmp_cc = cc;
+	tmp_sym = sym;
 	if (sym == SYM_IDENTIFIER)
 	{ // variable assignment
-		mask *mk;
 		if (!(i = position(id)))
 			error(11); // Undeclared identifier.
 		else if (table[i].kind != ID_VARIABLE)
@@ -637,40 +812,183 @@ void or_expr(symset fsys)
 		}
 		getsym();
 		if (sym == SYM_BECOMES)
+		{
+			mask *mk;
 			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+				gen(STO, level - mk -> level, mk -> address);
+		}
+		else if (sym == SYM_LSHBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_LSHIFT);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
+		else if (sym == SYM_RSHBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_RSHIFT);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
+		else if (sym == SYM_BANDBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_BAND);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
+		else if (sym == SYM_BXORBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_BXOR);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
+		else if (sym == SYM_BORBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_BOR);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
+		else if (sym == SYM_ADDBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_ADD);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
+		else if (sym == SYM_SUBBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_MIN);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
+		else if (sym == SYM_MULBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_MUL);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
+		else if (sym == SYM_DIVBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_DIV);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
+		else if (sym == SYM_MODBEC)
+		{
+			mask *mk;
+			getsym();
+			assign_expr(set);
+			mk = (mask *) &table[i];
+			if (i)
+			{
+				gen(LOD, level - mk -> level, mk -> address);
+				gen(XCHG, 0, 0);
+				gen(OPR, 0, OPR_MOD);
+				gen(STO, level - mk -> level, mk -> address);
+			}
+		}
 		else
-			error(13); // ':=' expected.
-		or_expr(fsys);
-		mk = (mask *) &table[i];
-		if (i)
-			gen(STO, level - mk->level, mk->address);
+		{ // Start with an identifier but is not an assignment expression.
+			cc = tmp_cc;
+			sym = tmp_sym;
+			condition_expr(set);
+		}
 	}
-} // or_expr*/
+	else // Not an assignment expression.
+		condition_expr(set);
+	destroyset(set);
+	destroyset(set1);
+} // assign_expr
+
+//////////////////////////////////////////////////////////////////////
+void expression(symset fsys)
+{
+	assign_expr(fsys);
+} //dummy func expression
 
 //////////////////////////////////////////////////////////////////////
 void statement(symset fsys)
 {
 	int i, cx1, cx2;
 	symset set1, set;
-	if (sym == SYM_IDENTIFIER)
-	{ // variable assignment
-		mask *mk;
-		if (!(i = position(id)))
-			error(11); // Undeclared identifier.
-		else if (table[i].kind != ID_VARIABLE)
-		{
-			error(12); // Illegal assignment.
-			i = 0;
-		}
-		getsym();
-		if (sym == SYM_BECOMES)
-			getsym();
-		else
-			error(13); // ':=' expected.
-		or_expr(fsys);
-		mk = (mask *) &table[i];
-		if (i)
-			gen(STO, level - mk -> level, mk -> address);
+	if (inset(sym, facbegsys))
+	{
+		expression(fsys);
+		gen(POP, 0, 0);	
+			//all expressions have a return value and it should be poped when a statement is done.
 	}
 	else if (sym == SYM_CALL)
 	{ // procedure call
@@ -697,7 +1015,7 @@ void statement(symset fsys)
 		getsym();
 		set1 = createset(SYM_THEN, SYM_DO, SYM_RPAREN, SYM_NULL);
 		set = uniteset(set1, fsys);
-		or_expr(set);//condition(set);
+		expression(set);
 		destroyset(set1);
 		destroyset(set);
 		if (sym == SYM_THEN)
@@ -736,7 +1054,7 @@ void statement(symset fsys)
 		getsym();
 		set1 = createset(SYM_DO, SYM_NULL);
 		set = uniteset(set1, fsys);
-		or_expr(set);//condition(set);
+		expression(set);//condition(set);
 		destroyset(set1);
 		destroyset(set);
 		cx2 = cx;
@@ -1012,8 +1330,7 @@ void interpret()
 		case STO:
 			stack[base(stack, b, i.l) + i.a] = stack[top];
 			printf("%d\n", stack[top]);
-			top--;
-			break;
+			break;	// STO doesn't pop the top item of the stack any more.
 		case CAL:
 			stack[top + 1] = base(stack, b, i.l);
 			// generate new block mark
@@ -1032,6 +1349,17 @@ void interpret()
 			if (stack[top] == 0)
 				pc = i.a;
 			top--;
+			break;
+		case POP: // pop the the top item to recover the stack 2017.10.26
+			top--;
+			break;
+		case XCHG://exchange the top item with the second top item 2017.10.26
+			if (stack[top] != stack[top - 1])
+			{
+				stack[top] ^= stack[top - 1];
+				stack[top - 1] ^= stack[top];
+				stack[top] ^= stack[top - 1];
+			}
 			break;
 		} // switch
 	}
@@ -1054,12 +1382,11 @@ void main ()
 		exit(1);
 	}
 	phi = createset(SYM_NULL);
-	relset = createset(SYM_EQU, SYM_NEQ, SYM_LES, SYM_LEQ, SYM_GTR, SYM_GEQ, SYM_NULL);
 	// create begin symbol sets
 	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL);
 	statbegsys = createset(SYM_BEGIN, SYM_CALL, SYM_IF, SYM_WHILE, SYM_NULL);
-	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, SYM_MINUS,
-						  SYM_ODD, SYM_NOT, SYM_BNOT, SYM_NULL);
+	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, 
+						  SYM_PLUS, SYM_MINUS, SYM_NOT, SYM_BNOT, SYM_ODD, SYM_NULL);
 	err = cc = cx = ll = 0; // initialize global variables
 	ch = ' ';
 	kk = MAXIDLEN;
@@ -1072,7 +1399,6 @@ void main ()
 	destroyset(set2);
 	destroyset(set);
 	destroyset(phi);
-	destroyset(relset);
 	destroyset(declbegsys);
 	destroyset(statbegsys);
 	destroyset(facbegsys);
