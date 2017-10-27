@@ -465,7 +465,7 @@ void primary_expr(symset fsys)
 						gen(LOD, level - mk -> level, mk -> address);
 						break;
 					case ID_PROCEDURE:
-						error(21); // Procedure identifier can not be in an expression.
+						error(21); // Will be modified: all functions and procedure have a return value
 						break;
 				} // switch
 			}
@@ -1049,7 +1049,7 @@ void block(symset fsys)
 	int block_dx;
 	int savedTx;
 	symset set1, set;
-	dx = 3;
+	dx = 4;
 	block_dx = dx;
 	mk = (mask *) &table[tx];
 	mk -> address = cx;
@@ -1100,13 +1100,26 @@ void block(symset fsys)
 			{
 				enter(ID_PROCEDURE);
 				getsym();
+				if (sym == SYM_LPAREN)
+				{
+					getsym();
+					if (sym == SYM_IDENTIFIER)
+					{
+						vardeclaration();
+						while (sym == SYM_COMMA)
+						{
+							getsym();
+							vardeclaration();
+						}
+					}
+					if (sym == SYM_RPAREN)
+						getsym();
+					else
+						error(22);
+				}
 			}
 			else
 				error(4); // There must be an identifier to follow 'const', 'var', or 'procedure'.
-			if (sym == SYM_SEMICOLON)
-				getsym();
-			else
-				error(5); // Missing ',' or ';'.
 			level++;
 			savedTx = tx;
 			set1 = createset(SYM_SEMICOLON, SYM_NULL);
@@ -1145,7 +1158,8 @@ void block(symset fsys)
 	statement(set);
 	destroyset(set1);
 	destroyset(set);
-	gen(OPR, 0, OPR_RET); // return
+	gen(OPR, 0, OPR_LEAVE); // return
+	gen(POP, 0, 0);
 	test(fsys, phi, 8); // test for error: Follow the statement is an incorrect symbol.
 	listcode(cx0, cx);
 } // block
@@ -1185,10 +1199,10 @@ void interpret()
 		case OPR:
 			switch (i.a) // operator
 			{
-				case OPR_RET:
-					top = b - 1;
-					pc = stack[top + 3];
-					b = stack[top + 2];
+				case OPR_LEAVE:
+					top = b - 2;
+					pc = stack[top + 4];
+					b = stack[top + 3];
 					break;
 				case OPR_NEG:
 					stack[top] = 0 - stack[top];
@@ -1310,11 +1324,13 @@ void interpret()
 			printf("%d\n", stack[top]);
 			break;	// STO doesn't pop the top item of the stack any more.
 		case CAL:
-			stack[top + 1] = base(stack, b, i.l);
+			//stack[top + 1] stores return value which is initallized by 0.
+			stack[top + 1] = 0;
+			stack[top + 2] = base(stack, b, i.l);
 			// generate new block mark
-			stack[top + 2] = b;
-			stack[top + 3] = pc;
-			b = top + 1;
+			stack[top + 3] = b;
+			stack[top + 4] = pc;
+			b = top + 2;
 			pc = i.a;
 			break;
 		case INT:

@@ -119,7 +119,7 @@ enum opcode
 
 enum oprcode
 {
-	OPR_RET,
+	OPR_LEAVE,
 	OPR_NEG,
 	OPR_ADD,
 	OPR_MIN,
@@ -187,7 +187,7 @@ char *err_msg[] =
 /* 24 */    "The symbol can not be as the beginning of an expression.",
 /* 25 */    "The number is too great.",
 /* 26 */    "Operand is not l-value.",
-/* 27 */    "",
+/* 27 */    "Missing '('.",
 /* 28 */    "",
 /* 29 */    "",
 /* 30 */    "",
