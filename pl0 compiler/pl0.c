@@ -101,8 +101,8 @@ void getsym(void)
 				a[k++] = ch;
 			getch();
 		}
-		while (isalpha(ch) || isdigit(ch));
-		a[k] = 0;
+		while (isalpha(ch) || isdigit(ch)); 
+		a[k] = '\0';
 		strcpy(id, a);
 		word[0] = id;
 		i = NRW;
@@ -265,40 +265,40 @@ void getsym(void)
 			getch();
 		}
 		else
-			sym = SYM_MINUS;     // -
+			sym = SYM_MINUS;   // -
 	}
 	else if (ch == '*')
 	{
 		getch();
 		if (ch == '=')
 		{
-			sym = SYM_MULBEC;    // *=
+			sym = SYM_MULBEC;  // *=
 			getch();
 		}
 		else
-			sym = SYM_TIMES;     // *
+			sym = SYM_TIMES;   // *
 	}
 	else if (ch == '/')
 	{
 		getch();
 		if (ch == '=')
 		{
-			sym = SYM_DIVBEC;    // /=
+			sym = SYM_DIVBEC;   // /=
 			getch();
 		}
 		else
-			sym = SYM_SLASH;     // /
+			sym = SYM_SLASH;    // /
 	}
 	else if (ch == '%')
 	{
 		getch();
 		if (ch == '=')
 		{
-			sym = SYM_MODBEC;    // %=
+			sym = SYM_MODBEC;   // %=
 			getch();
 		}
 		else
-			sym = SYM_MOD;       // %
+			sym = SYM_MOD;      // %
 	}
 	else
 	{ // other tokens in csym
@@ -484,10 +484,9 @@ void primary_expr(symset fsys)
 		else if (sym == SYM_LPAREN)
 		{
 			getsym();
-			set = uniteset(createset(SYM_RPAREN, SYM_NULL), fsys);
+			set = uniteset(set, createset(SYM_RPAREN, SYM_NULL));
 			expression(set);
-			destroyset(set);
-			if (sym == SYM_RPAREN)
+			if (sym == SYM_RPAREN) 
 				getsym();
 			else
 				error(22); // Missing ')'.
@@ -502,7 +501,45 @@ void primary_expr(symset fsys)
 //////////////////////////////////////////////////////////////////////
 void postfix_expr(symset fsys)
 {
-	primary_expr(fsys);
+	int postop;
+	symset set, set1;
+	set1 = createset(SYM_INC, SYM_DEC, SYM_NULL);
+	set = uniteset(fsys, set1);
+	primary_expr(set);
+	while (inset(sym, set1))
+	{
+		postop = sym;
+		switch (postop)
+		{
+			case SYM_INC:
+				if (code[cx - 1].f == LOD)//check if the increase oprand has the l-value attribute
+				{ //l-value check pass
+					instruction previous_code = code[cx - 1];
+					gen(LOD, previous_code.l, previous_code.a);
+					gen(OPR, 0, OPR_INC);
+					gen(STO, previous_code.l, previous_code.a);
+					gen(POP, 0, 0);
+				}
+				else //l-value check failed
+					error(26);
+				break;
+			case SYM_DEC:
+				if (code[cx - 1].f == LOD) //check if the decrease oprand has the l-value attribute
+				{ //l-value check pass
+					instruction previous_code = code[cx - 1];
+					gen(LOD, previous_code.l, previous_code.a);
+					gen(OPR, 0, SYM_DEC);
+					gen(STO, previous_code.l, previous_code.a);
+					gen(POP, 0, 0);
+				}
+				else //l-value check failed
+					error(26);
+				break;
+		}
+		getsym();
+	} // while
+	destroyset(set);
+	destroyset(set1); 
 } // postfix_expr
 
 //////////////////////////////////////////////////////////////////////
@@ -510,7 +547,8 @@ void unary_expr(symset fsys)
 {
 	int i, unaryop;
 	symset set, set1;
-	set1 = createset(SYM_PLUS, SYM_MINUS, SYM_NOT, SYM_BNOT, SYM_ODD, SYM_NULL);
+	set1 = createset(SYM_PLUS, SYM_MINUS, SYM_NOT, SYM_BNOT, 
+					 SYM_ODD,  SYM_INC,   SYM_DEC, SYM_NULL);
 	set = uniteset(fsys, set1);
 	if (inset(sym, set1))
 	{
@@ -532,6 +570,26 @@ void unary_expr(symset fsys)
 				break;
 			case SYM_ODD:
 				gen(OPR, 0, SYM_ODD);
+				break;
+			case SYM_INC:
+				if (code[cx - 1].f == LOD) //check if the increase oprand has the l-value attribute
+				{ //l-value check pass
+					instruction previous_code = code[cx - 1];
+					gen(OPR, 0, OPR_INC);
+					gen(STO, previous_code.l, previous_code.a);
+				}
+				else //l-value check failed
+					error(26);
+				break;
+			case SYM_DEC:
+				if (code[cx - 1].f == LOD) //check if the decrease oprand has the l-value attribute
+				{ //l-value check pass
+					instruction previous_code = code[cx - 1];
+					gen(OPR, 0, OPR_DEC);
+					gen(STO, previous_code.l, previous_code.a);
+				}
+				else //l-value check failed
+					error(26);
 				break;
 		}
 	}
@@ -793,182 +851,95 @@ void condition_expr(symset fsys)
 void assign_expr(symset fsys)
 {
 	int assignop;
-	int tmp_cc, i;
-	enum symtype tmp_sym;
 	symset set, set1;
 	set1 = createset(SYM_BECOMES, SYM_LSHBEC, SYM_RSHBEC, SYM_BANDBEC, SYM_BXORBEC, SYM_BORBEC,
 					 SYM_ADDBEC,  SYM_SUBBEC, SYM_MULBEC, SYM_DIVBEC,  SYM_MODBEC,  SYM_NULL);
 	set = uniteset(fsys, set1);
-	tmp_cc = cc;
-	tmp_sym = sym;
-	if (sym == SYM_IDENTIFIER)
-	{ // variable assignment
-		if (!(i = position(id)))
-			error(11); // Undeclared identifier.
-		else if (table[i].kind != ID_VARIABLE)
-		{
-			error(12); // Illegal assignment.
-			i = 0;
-		}
-		getsym();
-		if (sym == SYM_BECOMES)
-		{
-			mask *mk;
+	condition_expr(set);
+	if (inset(sym, set1))
+	{
+		if (code[cx - 1].f == LOD)	//check if the left oprand has the l-value attribute
+		{ //l-value check pass 
+			instruction previous_code = code[--cx];
+			assignop = sym;
 			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
-				gen(STO, level - mk -> level, mk -> address);
-		}
-		else if (sym == SYM_LSHBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			assign_expr(set);	// self-recursion
+			if (assignop == SYM_BECOMES)
+				gen(STO, previous_code.l, previous_code.a);
+			else if (assignop == SYM_LSHBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_LSHIFT);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
-		}
-		else if (sym == SYM_RSHBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			else if (assignop == SYM_RSHBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_RSHIFT);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
-		}
-		else if (sym == SYM_BANDBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			else if (assignop == SYM_BANDBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_BAND);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
-		}
-		else if (sym == SYM_BXORBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			else if (assignop == SYM_BXORBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_BXOR);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
-		}
-		else if (sym == SYM_BORBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			else if (assignop == SYM_BORBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_BOR);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
-		}
-		else if (sym == SYM_ADDBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			else if (assignop == SYM_ADDBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_ADD);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
-		}
-		else if (sym == SYM_SUBBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			else if (assignop == SYM_SUBBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_MIN);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
-		}
-		else if (sym == SYM_MULBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			else if (assignop == SYM_MULBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_MUL);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
-		}
-		else if (sym == SYM_DIVBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			else if (assignop == SYM_DIVBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_DIV);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
-		}
-		else if (sym == SYM_MODBEC)
-		{
-			mask *mk;
-			getsym();
-			assign_expr(set);
-			mk = (mask *) &table[i];
-			if (i)
+			else if (assignop == SYM_MODBEC)
 			{
-				gen(LOD, level - mk -> level, mk -> address);
+				gen(LOD, previous_code.l, previous_code.a);
 				gen(XCHG, 0, 0);
 				gen(OPR, 0, OPR_MOD);
-				gen(STO, level - mk -> level, mk -> address);
+				gen(STO, previous_code.l, previous_code.a);
 			}
 		}
-		else
-		{ // Start with an identifier but is not an assignment expression.
-			cc = tmp_cc;
-			sym = tmp_sym;
-			condition_expr(set);
-		}
+		else //l-value check failed
+			error(26);
 	}
-	else // Not an assignment expression.
-		condition_expr(set);
 	destroyset(set);
 	destroyset(set1);
 } // assign_expr
@@ -1188,6 +1159,7 @@ int base(int stack[], int currentLevel, int levelDiff)
 	return b;
 } // base
 
+
 //////////////////////////////////////////////////////////////////////
 // interprets and executes codes.
 void interpret()
@@ -1322,6 +1294,12 @@ void interpret()
 					top--;
 					stack[top] = stack[top] | stack[top + 1]; 
 					break;
+				case OPR_INC:	//	++
+					++stack[top]; 
+					break;
+				case OPR_DEC:	//	--
+					--stack[top]; 
+					break;
 			} // switch
 			break;
 		case LOD:
@@ -1368,14 +1346,14 @@ void interpret()
 } // interpret
 
 //////////////////////////////////////////////////////////////////////
-void main ()
+int main (void)
 {
 	FILE* hbin;
-	char s[80];
+	char s[80] = "example.txt";
 	int i;
 	symset set, set1, set2;
-	printf("Please input source file name: "); // get file name to be compiled
-	scanf("%s", s);
+	/*printf("Please input source file name: "); // get file name to be compiled
+	scanf("%s", s);*/
 	if ((infile = fopen(s, "r")) == NULL)
 	{
 		printf("File %s can't be opened.\n", s);
@@ -1386,7 +1364,8 @@ void main ()
 	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL);
 	statbegsys = createset(SYM_BEGIN, SYM_CALL, SYM_IF, SYM_WHILE, SYM_NULL);
 	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, 
-						  SYM_PLUS, SYM_MINUS, SYM_NOT, SYM_BNOT, SYM_ODD, SYM_NULL);
+						  SYM_PLUS, SYM_MINUS, SYM_NOT, SYM_BNOT, SYM_ODD,
+						  SYM_INC, SYM_DEC, SYM_NULL);
 	err = cc = cx = ll = 0; // initialize global variables
 	ch = ' ';
 	kk = MAXIDLEN;
@@ -1416,6 +1395,7 @@ void main ()
 	else
 		printf("There are %d error(s) in PL/0 program.\n", err);
 	listcode(0, cx);
+	return 0;
 } // main
 
 //////////////////////////////////////////////////////////////////////

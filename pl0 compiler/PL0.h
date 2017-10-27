@@ -145,7 +145,9 @@ enum oprcode
 
 	OPR_MOD,
 	OPR_LSHIFT,
-	OPR_RSHIFT
+	OPR_RSHIFT,
+	OPR_INC,
+	OPR_DEC 
 };
 
 typedef struct
@@ -184,7 +186,7 @@ char *err_msg[] =
 /* 23 */    "The symbol can not be a primary expression.",
 /* 24 */    "The symbol can not be as the beginning of an expression.",
 /* 25 */    "The number is too great.",
-/* 26 */    "",
+/* 26 */    "Operand is not l-value.",
 /* 27 */    "",
 /* 28 */    "",
 /* 29 */    "",
@@ -333,5 +335,6 @@ typedef struct
 } mask;
 
 FILE* infile;
+
 
 // EOF PL0.h
