@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define NRW        22     // number of reserved words
+#define NRW        19     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
 #define NSYM       30     // maximum number of symbols in array ssym and csym
@@ -42,16 +42,14 @@ enum symtype
 	SYM_THEN,
 	SYM_WHILE,
 	SYM_DO,
-	SYM_CALL,
 	SYM_CONST,
 	SYM_VAR,
-	SYM_PROCEDURE,
+	SYM_FUNCTION,
 	
 	//new reserved words 
 	SYM_ELSE,
-	SYM_ELIF,
 	SYM_EXIT,
-	SYM_RETUEN,
+	SYM_RETURN,
 	SYM_FOR,
 	SYM_RANDOM,
 	SYM_PRINT,
@@ -100,7 +98,7 @@ enum idtype
 {
 	ID_CONSTANT,
 	ID_VARIABLE,
-	ID_PROCEDURE
+	ID_FUNCTION
 };
 
 enum opcode
@@ -147,7 +145,8 @@ enum oprcode
 	OPR_LSHIFT,
 	OPR_RSHIFT,
 	OPR_INC,
-	OPR_DEC 
+	OPR_DEC,
+	OPR_RET
 };
 
 typedef struct
@@ -164,7 +163,7 @@ char *err_msg[] =
 /*  1 */    "Found ':=' when expecting '='.",
 /*  2 */    "There must be a number to follow '='.",
 /*  3 */    "There must be an '=' to follow the identifier.",
-/*  4 */    "There must be an identifier to follow 'const', 'var', or 'procedure'.",
+/*  4 */    "There must be an identifier to follow 'const', 'var', or 'FUNCTION'.",
 /*  5 */    "Missing ',' or ';'.",
 /*  6 */    "Incorrect procedure name.",
 /*  7 */    "Statement expected.",
@@ -216,19 +215,16 @@ char *word[NRW + 1] =
 {
 	"", /* place holder */
 	"begin",
-	"call",
 	"const",
 	"do",
 	"end",
 	"if",
 	"odd",
-	"procedure",
-	"then",
+	"function",
 	"var",
 	"while",
 	
 	"else",				//else
-	"elif",				//elif
 	"exit",				//exit
 	"return",			//return
 	"for",				//for
@@ -244,21 +240,18 @@ int wsym[NRW + 1] =
 {
 	SYM_NULL,
 	SYM_BEGIN,
-	SYM_CALL,
 	SYM_CONST,
 	SYM_DO,
 	SYM_END,
 	SYM_IF,
 	SYM_ODD,
-	SYM_PROCEDURE,
-	SYM_THEN,
+	SYM_FUNCTION,
 	SYM_VAR,
 	SYM_WHILE,
 	
 	SYM_ELSE,
-	SYM_ELIF,
 	SYM_EXIT,
-	SYM_RETUEN,
+	SYM_RETURN,
 	SYM_FOR,
 	SYM_RANDOM,
 	SYM_PRINT,
